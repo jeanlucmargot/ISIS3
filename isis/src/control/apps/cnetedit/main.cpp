@@ -197,9 +197,19 @@ void IsisMain() {
       if (!editMeasures->contains(results[0]))
         editMeasures->insert(results[0], new QSet<QString>);
 
+      //jlm
+      //qInfo( "%s", results[0].toStdString().c_str() );
+      //qInfo( "%s", results[1].toStdString().c_str() );
+
       FileName cubeName(results[1]);
-      QString sn = SerialNumber::Compose(cubeName.expanded());
+      //QString sn = SerialNumber::Compose(cubeName.expanded());
+      // jlm add def2filename = true 
+      QString sn = SerialNumber::Compose(cubeName.expanded(), true);
       (*editMeasures)[results[0]]->insert(sn);
+
+      //jlm
+      //qInfo( "%s", cubeName.expanded().toStdString().c_str() );
+      //qInfo( "%s", sn.toStdString().c_str() );
 
       lineNumber++;
     }
