@@ -52,7 +52,8 @@ namespace Isis {
    */
   ControlNetFilter::ControlNetFilter(ControlNet *pCNet, QString &psSerialNumFile, Progress *pProgress) :
     ControlNetStatistics(pCNet, psSerialNumFile, pProgress) {
-    mSerialNumFilter  = SerialNumberList(psSerialNumFile);
+    // jlm sets checkTarget to false
+    mSerialNumFilter  = SerialNumberList(psSerialNumFile, false);
   }
 
   /**
