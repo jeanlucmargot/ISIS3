@@ -49,6 +49,9 @@ namespace Isis {
     m_checkTarget = checkTarget;
     m_target.clear();
 
+    //jlm
+    //qInfo( "checkTarget %d" , m_checkTarget);
+
     try {
       FileList flist(listfile);
       if (progress != NULL) {
@@ -57,7 +60,8 @@ namespace Isis {
         progress->CheckStatus();
       }
       for (int i = 0; i < flist.size(); i++) {
-        add(flist[i].toString());
+        // jlm sets def2filename to true
+        add(flist[i].toString(), true);
         if (progress != NULL) {
           progress->CheckStatus();
         }
@@ -124,6 +128,9 @@ namespace Isis {
 
     try {
 
+      // jlm sets m_checkTarget to false
+      m_checkTarget = false;
+
       // Test the target name if desired
       if (m_checkTarget) {
         QString target;
@@ -133,6 +140,10 @@ namespace Isis {
         }
         else if (def2filename) {
           // No instrument, try Mapping
+          // jlm
+          //qInfo( "dims test 138 %d" , cubeObj.hasGroup("Dimensions"));
+          //qInfo( "pixels test 138 %d" , cubeObj.hasGroup("Pixels"));
+          //qInfo( "mapping test 138 %d" , cubeObj.hasGroup("Mapping"));
           if (cubeObj.hasGroup("Mapping")) {
             targetGroup = cubeObj.findGroup("Mapping");
           }
@@ -248,6 +259,11 @@ namespace Isis {
       if (m_checkTarget) {
         QString target;
         PvlGroup targetGroup;
+
+        // jlm
+        // qInfo( "mapping test 256 %d" , cubeObj.hasGroup("Mapping"));
+
+
         if (cubeObj.hasGroup("Instrument")) {
           targetGroup = cubeObj.findGroup("Instrument");
         }
