@@ -54,7 +54,8 @@ namespace Isis {
     numCNetImages = 0;
     mCNet = pCNet;
 
-    mSerialNumList = SerialNumberList(psSerialNumFile);
+    // jlm sets checkTarget to false
+    mSerialNumList = SerialNumberList(psSerialNumFile, false);
     InitSerialNumMap();
 
     mProgress = pProgress;
