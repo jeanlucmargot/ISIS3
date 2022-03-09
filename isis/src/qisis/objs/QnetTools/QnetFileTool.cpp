@@ -149,7 +149,9 @@ namespace Isis {
     QApplication::setOverrideCursor(Qt::WaitCursor);
     // Use the list to get serial numbers and polygons
     try {
-      *serialNumberList() = SerialNumberList(list);
+      //*serialNumberList() = SerialNumberList(list);
+      // jlm sets checkTarget to false
+      *serialNumberList() = SerialNumberList(list, false);
       *controlNet() = ControlNet();
     }
     catch (IException &e) {
