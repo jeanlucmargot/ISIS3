@@ -1608,10 +1608,13 @@ namespace Isis {
         p_cameraRejectedMeasuresMap[serialNumber] = 0;
         p_cameraList.push_back(cam);
       }
+      // jlm: disable exception because ISIS does not have a camera model for the Magellan SAR
+      // and because we actually do not need it for most qnet tasks.
+      // It would be better to create the appropriate model.
       catch (IException &e) {
-        QString msg = "Unable to create camera for cube file ";
-        msg += filename;
-        throw IException(e, IException::Unknown, msg, _FILEINFO_);
+      //  QString msg = "Unable to create camera for cube file ";
+      //  msg += filename;
+      //  throw IException(e, IException::Unknown, msg, _FILEINFO_);
       }
 
       if (progress != NULL)
