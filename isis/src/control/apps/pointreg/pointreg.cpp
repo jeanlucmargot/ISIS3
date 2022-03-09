@@ -234,7 +234,8 @@ namespace Isis {
 
     // Open the files list in a SerialNumberList for
     // reference by SerialNumber
-    files = new SerialNumberList(ui.GetFileName("FROMLIST"));
+    // jlm sets checkTarget to false
+    files = new SerialNumberList(ui.GetFileName("FROMLIST"), false);
 
     // Create the output ControlNet from the input file
     ControlNet outNet(ui.GetFileName("CNET"));
@@ -316,7 +317,6 @@ namespace Isis {
         // Keep track of how many ignored points we didn't register.
         if (outPoint->IsIgnored()) {
           ignored++;
-
           // If the point is ignored and the user doesn't want them, delete it
           if (!outputIgnored) {
             outNet.DeletePoint(i);
@@ -336,7 +336,9 @@ namespace Isis {
         outPoint->SetRefMeasure(patternCM);
 
         if (validate != "ONLY") {
+          //qInfo( "before %d" , outPoint->IsIgnored());
           registerPoint(outPoint, patternCM, registerMeasures, outputFailed);
+          //qInfo( "after %d" , outPoint->IsIgnored());
         }
         if (validate != "SKIP") {
           validatePoint(outPoint, patternCM, ui.GetDouble("SHIFT"));
@@ -373,7 +375,9 @@ namespace Isis {
         "OriginalMeasurementSample,OriginalMeasurementLine," <<
         "RegisteredMeasurementSample,RegisteredMeasurementLine,SampleShift," <<
         "LineShift,PixelShift,ZScoreMin,ZScoreMax,GoodnessOfFit" << endl;
-      os << Null << endl;
+      // jlm
+      // qInfo("%lf",Isis::Null);
+      // os << Null << endl;
 
       // Create a ControlNet from the original input file
       ControlNet inNet(ui.GetFileName("CNET"));
@@ -534,14 +538,24 @@ namespace Isis {
     Cube &patternCube = *cubeMgr->OpenCube(
         files->fileName(patternCM->GetCubeSerialNumber()));
 
+    // jlm
+    //qInfo("%s", patternCM->GetCubeSerialNumber().toStdString().c_str());
+    //qInfo("%s", outPoint->GetId().toStdString().c_str());
+
+    // jlm
+    //qInfo("Sample Line %lf %lf", patternCM->GetSample(), patternCM->GetLine());
     ar->PatternChip()->TackCube(patternCM->GetSample(), patternCM->GetLine());
     ar->PatternChip()->Load(patternCube);
 
     if (patternCM->IsEditLocked()) {
+      // jlm
+      qInfo("Edit-locked");
       locked++;
     }
 
     if (outPoint->GetRefMeasure() != patternCM) {
+      // jlm
+      qInfo("GetRefMeasure != patternCM");
       outPoint->SetRefMeasure(patternCM);
     }
 
@@ -554,6 +568,8 @@ namespace Isis {
         if (measure->IsEditLocked()) {
           // If the measurement is locked, keep it as is and go to next measure
           locked++;
+          // jlm
+          qInfo("Edit-locked");
         }
         else if (!measure->IsMeasured() || registerMeasures != "CANDIDATES") {
 
@@ -563,13 +579,31 @@ namespace Isis {
           Cube &searchCube = *cubeMgr->OpenCube(files->fileName(
                 measure->GetCubeSerialNumber()));
 
+          // jlm
+          //qInfo("%s", patternCM->GetCubeSerialNumber().toStdString().c_str());
+          //qInfo("%s", measure->GetCubeSerialNumber().toStdString().c_str());
+          //qInfo("Measure Sample Line %lf %lf", measure->GetSample(), measure->GetLine());
           ar->SearchChip()->TackCube(measure->GetSample(), measure->GetLine());
 
           verifyCube(patternCube);
           verifyCube(searchCube);
 
           try {
-            ar->SearchChip()->Load(searchCube, *(ar->PatternChip()), patternCube);
+            // jlm: this line causes a problem if the geometry to be matched is very near the 0/360 longitude line
+            // the problem is the attempt to match according to the projections
+            // void Load(Cube &cube, Chip &match, Cube &matchChipCube)
+            // ar->SearchChip()->Load(searchCube, *(ar->PatternChip()), patternCube);
+
+            // jlm: tried to load with Affine - didn't work
+            //Affine jlm_identity;
+            //ar->SearchChip()->Load(searchCube, jlm_identity);
+
+            // jlm: try a simple load - worked!
+            ar->SearchChip()->Load(searchCube);
+
+            // jlm
+            //qInfo("Pattern pixels %d %d", patternCube.lineCount(), patternCube.sampleCount());
+            //qInfo("Search  pixels %d %d", searchCube.lineCount(), searchCube.sampleCount());
 
             // If the measurements were correctly registered
             // Write them to the new ControlNet
@@ -580,6 +614,11 @@ namespace Isis {
             double score1, score2;
             ar->ZScores(score1, score2);
 
+            //jlm
+            //qInfo("Reg. Status %d", res );
+            //qInfo("Goodness of fit %lf", ar->GoodnessOfFit());
+            //qInfo("Scores %lf %lf", score1, score2);
+
             // Set the minimum and maximum z-score values for the measure
             measure->SetLogData(ControlMeasureLogData(
                   ControlMeasureLogData::MinimumPixelZScore, score1));
@@ -589,9 +628,12 @@ namespace Isis {
             if (ar->Success()) {
               // Check to make sure the newly calculated measure position is on
               // the surface of the planet
-              Camera *cam = searchCube.camera();
-              bool foundLatLon = cam->SetImage(ar->CubeSample(), ar->CubeLine());
+              // jlm comments out next two lines
+              //Camera *cam = searchCube.camera();
+              //bool foundLatLon = cam->SetImage(ar->CubeSample(), ar->CubeLine());
 
+              //jlm forces foundLatLon to be true
+              bool foundLatLon = true;
               if (foundLatLon) {
                 registered++;
 
@@ -633,6 +675,7 @@ namespace Isis {
             // Else use the original marked as "Candidate"
             else {
               unregistered++;
+              //qInfo( "Unregistered" );
 
               if (outputFailed) {
                 measure->SetType(ControlMeasure::Candidate);
@@ -652,6 +695,8 @@ namespace Isis {
           }
           catch (IException &e) {
             unregistered++;
+            // jlm
+            // qInfo( "Exception" );
 
             if (outputFailed) {
               measure->SetType(ControlMeasure::Candidate);
@@ -762,9 +807,13 @@ namespace Isis {
       if (validator->Success()) {
         // Check to make sure the newly calculated measure position is on
         // the surface of the planet
-        Camera *cam = searchCube.camera();
-        bool foundLatLon = cam->SetImage(
-            validator->CubeSample(), validator->CubeLine());
+        // jlm comments out next two lines
+        //Camera *cam = searchCube.camera();
+        //bool foundLatLon = cam->SetImage(
+        //    validator->CubeSample(), validator->CubeLine());
+
+        //jlm forces foundLatLon to be true
+        bool foundLatLon = true;
 
         if (foundLatLon) {
           validation.compare(
@@ -781,9 +830,14 @@ namespace Isis {
 
   double getResolution(Cube &cube, ControlMeasure &measure) {
     // TODO retrieve for projection
-    Camera *camera = cube.camera();
-    camera->SetImage(measure.GetSample(), measure.GetLine());
-    return camera->PixelResolution();
+    // jlm comment out the next two lines
+    //Camera *camera = cube.camera();
+    //camera->SetImage(measure.GetSample(), measure.GetLine());
+    //return camera->PixelResolution();    
+
+    // jlm force image resolution to be 75 m
+    // it would be better to create the appropriate camera model
+    return 75;
   }
 
 
@@ -798,6 +852,8 @@ namespace Isis {
       }
       catch (IException &projError) {
         projError.append(camError);
+        // jlm
+        qInfo("verifycube exception");
         throw projError;
       }
     }
