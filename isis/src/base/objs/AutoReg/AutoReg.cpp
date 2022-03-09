@@ -273,9 +273,13 @@ namespace Isis {
   void AutoReg::SetGradientFilterType(const QString &gradientFilterType) {
     if (gradientFilterType == "None") {
       p_gradientFilterType = None;
+      // jlm
+      // qInfo("Gradient None");
     }
     else if (gradientFilterType == "Sobel") {
       p_gradientFilterType = Sobel;
+      // jlm
+      // qInfo("Gradient Sobel");
     }
     else {
       throw IException(IException::User,
@@ -462,6 +466,9 @@ namespace Isis {
     p_reducedPatternChip.SetReadInterpolator(itype);
     p_reducedSearchChip.SetReadInterpolator(itype);
 
+    // jlm
+    // qInfo("Interpolator type %d", itype);
+
   }
 
   /**
@@ -608,6 +615,17 @@ namespace Isis {
     Init();
     p_totalRegistrations++;
 
+    // jlm print out search chip values
+    //for (int jlml = 1; jlml <= p_searchChip.Lines(); jlml++) {
+    //for (int jlms = 1; jlms <= p_searchChip.Samples(); jlms++) {
+        //qInfo("%4d %4d %f", jlml, jlms, p_searchChip.GetValue(jlms, jlml));
+        //if (p_searchChip.GetValue(jlms, jlml) < 0) {
+        //qInfo("%4d %4d %f", jlml, jlms, p_searchChip.GetValue(jlms, jlml));
+          //p_searchChip.SetValue(jlms, jlml, 0);
+    //  }
+    //}
+    //}
+
     // Create copies of the search and pattern chips and run a gradient filter
     // over them before attempting to perform a match. We do this so that
     // multiple calls to this method won't result in having a gradient filter
@@ -654,6 +672,9 @@ namespace Isis {
     int endSamp = gradientSearchChip.Samples() - startSamp + 1;
     int endLine = gradientSearchChip.Lines() - startLine + 1;
 
+    // jlm 15, 26 for qnetRegC30S4
+    // qInfo("S,L,S,L %d %d %d %d", startSamp, startLine, endSamp, endLine);
+
     // ----------------------------------------------------------------------
     // Before we attempt to apply the reduction factor, we need to make sure
     // we won't produce a chip of a bad size.
@@ -669,6 +690,12 @@ namespace Isis {
     // adaptive algorithm prior to reduction.
     int bestSearchSamp = gradientSearchChip.TackSample();
     int bestSearchLine = gradientSearchChip.TackLine();
+
+    // jlm 20, 20 for qnetRegC30S4
+    // qInfo("center %d %d", bestSearchSamp, bestSearchLine);
+
+    // jlm 1
+    // qInfo("reduce %d", p_reduceFactor);
 
     // ---------------------------------------------------------------------
     // if the reduction factor is still not equal to one, then we go ahead
@@ -707,6 +734,8 @@ namespace Isis {
       if(p_bestFit == Isis::Null) {
         p_fitChipNoDataCount++;
         p_registrationStatus = FitChipNoData;
+        // jlm
+        //qInfo("FitChipNoData");
         return FitChipNoData;
       }
 
@@ -716,6 +745,9 @@ namespace Isis {
       // -----------------------------------------------------
       int bs = (p_bestSamp - 1) * p_reduceFactor + ((p_reduceFactor - 1) / 2) + 1;
       int bl = (p_bestLine - 1) * p_reduceFactor + ((p_reduceFactor - 1) / 2) + 1;
+
+      // jlm
+      // qInfo("best s and l %d %d", p_bestSamp, p_bestLine);
 
       // ---------------------------------------------------------------
       // Now we grow our window size according to the reduction factor.
@@ -926,6 +958,8 @@ namespace Isis {
    */
   void AutoReg::ApplyGradientFilter(Chip &chip) {
     if (p_gradientFilterType == None) {
+      // jlm
+      // qInfo("Gradient None");
       return;
     }
 
@@ -1037,12 +1071,18 @@ namespace Isis {
       throw IException(IException::Programmer, msg, _FILEINFO_);
     }
 
+    // jlm
+    // qInfo("Entering Match: %d %d %d %d", startSamp, endSamp, startLine, endLine);
+
     // Ok create a fit chip whose size is the same as the search chip
     // and then fill it with nulls
     fChip.SetSize(sChip.Samples(), sChip.Lines());
     for(int line = 1; line <= fChip.Lines(); line++) {
       for(int samp = 1; samp <= fChip.Samples(); samp++) {
+
         fChip.SetValue(samp, line, Isis::Null);
+        //jlm
+        //fChip.SetValue(samp, line, 0);
       }
     }
 
@@ -1054,8 +1094,20 @@ namespace Isis {
         // Extract the subsearch chip and make sure it has enough valid data
         sChip.Extract(samp, line, subsearch);
 
+        //jlm
+        //if (line == 20 and samp == 20) {
+        //for (int jlml = 1; jlml <= pChip.Lines(); jlml++) {
+        //  for (int jlms = 1; jlms <= pChip.Samples(); jlms++) {
+        //    qInfo("%4d %4d %f %f", jlml, jlms, subsearch.GetValue(jlms, jlml), pChip.GetValue(jlms, jlml));
+        //  }
+        //}
+        //}     
 //        if(!subsearch.IsValid(p_patternValidPercent)) continue;
-        if(!subsearch.IsValid(p_subsearchValidPercent)) continue;
+        if(!subsearch.IsValid(p_subsearchValidPercent)) {
+          // jlm
+          //qInfo("Not enough valid pixels at l,s %d %d", line, samp);
+          continue;
+        }
 
         // Try to match the two subchips
         double fit = MatchAlgorithm(pChip, subsearch);
@@ -1067,6 +1119,8 @@ namespace Isis {
             p_bestFit = fit;
             p_bestSamp = samp;
             p_bestLine = line;
+            // jlm
+            // qInfo("Current best fit: %d %d %lf", line, samp, fit);
           }
         }
       }
